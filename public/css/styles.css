@@ -75,6 +75,9 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -383,6 +386,15 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
+}
+
+.header-actions .btn-primary {
+    width: auto;
+    padding: 10px 20px;
+}
+
+.header-actions .btn-secondary {
+    padding: 10px 20px;
 }
 
 .welcome-message {

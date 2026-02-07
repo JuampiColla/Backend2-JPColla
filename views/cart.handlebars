@@ -1,0 +1,204 @@
+<div class="container">
+    <div class="header">
+        <div class="welcome-message">
+            <div class="user-avatar">
+                {{#if user.avatar}}
+                <img src="{{user.avatar}}" alt="Avatar" class="avatar-img">
+                {{else}}
+                <div class="avatar-placeholder">{{substring user.firstName 0 1}}</div>
+                {{/if}}
+            </div>
+            <div>
+                <h1>Tu Carrito</h1>
+                <p class="user-info">
+                    {{user.firstName}} {{user.lastName}} | {{user.email}}
+                </p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/products" class="btn-primary">⬅️ Seguir comprando</a>
+        </div>
+    </div>
+
+    <div class="cart-section">
+        <div id="cartContent">
+            Cargando carrito...
+        </div>
+    </div>
+</div>
+
+<style>
+    .cart-section {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .cart-section h2 {
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    .cart-list {
+        display: grid;
+        gap: 15px;
+    }
+
+    .cart-item {
+        border: 2px solid #eee;
+        border-radius: 8px;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9f9f9;
+    }
+
+    .cart-item-info {
+        flex: 1;
+    }
+
+    .cart-item-info > div {
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .cart-item-info strong {
+        color: #667eea;
+    }
+
+    .btn-remove {
+        padding: 8px 15px;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .btn-remove:hover {
+        background: #ee5a52;
+    }
+
+    .cart-total {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #eee;
+        text-align: right;
+    }
+
+    .cart-total p {
+        font-size: 20px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .cart-empty {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+
+    .btn-small {
+        padding: 8px 15px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .btn-small:hover {
+        background: #764ba2;
+    }
+</style>
+
+<script>
+    async function loadCart() {
+        try {
+            console.log('Loading cart...');
+            const res = await fetch('/api/carts', {
+                credentials: 'include' // Incluir cookies en la solicitud
+            });
+            console.log('Cart response status:', res.status);
+            
+            if (!res.ok) {
+                console.error('Fetch error:', res.statusText);
+                document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Error cargando carrito: ' + res.statusText + '</p><a href="/products" class="btn-primary">Ir a Productos</a></div>';
+                return;
+            }
+
+            const data = await res.json();
+            console.log('Cart data:', data);
+            
+            if (data.status !== 'success') {
+                console.error('API error:', data.message);
+                document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Error: ' + data.message + '</p><a href="/products" class="btn-primary">Ir a Productos</a></div>';
+                return;
+            }
+
+            const { cart, total } = data.payload;
+            if (!cart || !cart.products.length) {
+                document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Tu carrito está vacío</p><a href="/products" class="btn-primary">Ir a Productos</a></div>';
+                return;
+            }
+
+            const list = document.createElement('div');
+            list.className = 'cart-list';
+
+            cart.products.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'cart-item';
+                const productPrice = item.product.price || 0;
+                const itemTotal = productPrice * item.quantity;
+                el.innerHTML = `
+                    <div class="cart-item-info">
+                        <div><strong>${item.product.name || 'Producto'}</strong></div>
+                        <div>Precio: $${productPrice}</div>
+                        <div><strong>Cantidad:</strong> ${item.quantity} unidades</div>
+                        <div style="color: #667eea; font-weight: 600;">Subtotal: $${itemTotal}</div>
+                    </div>
+                    <button class="btn-remove" data-id="${item.product.id || item.product}">🗑️ Eliminar</button>
+                `;
+                list.appendChild(el);
+            });
+
+            const totalEl = document.createElement('div');
+            totalEl.className = 'cart-total';
+            totalEl.innerHTML = `<p>💰 Total: $${total}</p>`;
+
+            document.getElementById('cartContent').innerHTML = '';
+            document.getElementById('cartContent').appendChild(list);
+            document.getElementById('cartContent').appendChild(totalEl);
+
+            document.querySelectorAll('.btn-remove').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const productId = e.target.dataset.id;
+                    try {
+                        await fetch('/api/carts/remove', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include', // Incluir cookies
+                            body: JSON.stringify({ productId })
+                        });
+                        loadCart();
+                    } catch (err) {
+                        console.error(err);
+                        alert('Error al eliminar producto');
+                    }
+                });
+            });
+
+        } catch (err) {
+            console.error('Fetch error:', err);
+            document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Error cargando carrito: ' + err.message + '</p></div>';
+        }
+    }
+
+    loadCart();
+</script>

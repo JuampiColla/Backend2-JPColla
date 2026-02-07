@@ -13,7 +13,8 @@ export const generateToken = (user) => {
         email: user.email,
         role: user.role,
         first_name: user.first_name,
-        last_name: user.last_name
+        last_name: user.last_name,
+        cart: user.cart // Incluir ID del carrito
     };
 
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });

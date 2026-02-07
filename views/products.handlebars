@@ -29,7 +29,10 @@
                 </p>
             </div>
         </div>
-        <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
+        <div class="header-actions">
+            <a href="/cart" class="btn-primary">🛒 Ver Carrito</a>
+            <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
+        </div>
     </div>
 
     <div class="products-section">
@@ -63,7 +66,7 @@
                     <button class="btn-small btn-delete" data-id="{{this.id}}">🗑️ Eliminar</button>
                 </div>
                 {{else}}
-                <button class="btn-primary btn-add-cart" {{#unless (gt this.stock 0)}}disabled{{/unless}}>
+                <button class="btn-primary btn-add-cart" data-id="{{this.id}}" {{#unless (gt this.stock 0)}}disabled{{/unless}}>
                     {{#if (gt this.stock 0)}}
                     🛒 Agregar al Carrito
                     {{else}}
@@ -81,7 +84,8 @@
     document.getElementById('logoutBtn').addEventListener('click', async () => {
         try {
             const response = await fetch('/api/users/logout', {
-                method: 'POST'
+                method: 'POST',
+                credentials: 'include' // Incluir cookies
             });
 
             const data = await response.json();
@@ -92,6 +96,32 @@
         } catch (error) {
             console.error('Error al cerrar sesión:', error);
         }
+    });
+
+    // Manejar click en "Agregar al Carrito"
+    document.querySelectorAll('.btn-add-cart').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const productId = e.target.dataset.id;
+            try {
+                const res = await fetch('/api/carts/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', // Incluir cookies
+                    body: JSON.stringify({ productId, quantity: 1 })
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    alert('✓ Producto agregado al carrito');
+                } else {
+                    alert('✗ Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('✗ Error al agregar al carrito');
+            }
+        });
     });
 
     // Funcionalidad de administrador

@@ -16,6 +16,8 @@ import productsRouter from './routes/products.routes.js';
 import viewsRouter from './routes/views.routes.js';
 import usersApiRouter from './routes/api/users.routes.js';
 import usersViewsRouter from './routes/users.routes.js';
+import sessionsRouter from './routes/api/sessions.routes.js';
+import cartsRouter from './routes/api/carts.routes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -83,6 +85,9 @@ app.use('/users', usersViewsRouter);
 // Rutas de API de usuarios (JWT + CRUD)
 app.use('/api/users', usersApiRouter);
 
+// Rutas de sesiones (JWT)
+app.use('/api/sessions', sessionsRouter);
+
 // Rutas de autenticación con Passport (GitHub OAuth)
 app.use('/api/auth', authRouter);
 
@@ -91,6 +96,19 @@ app.use('/products', viewsRouter);
 
 // Rutas de productos - API
 app.use('/api/products', productsRouter);
+
+// Rutas de carrito
+app.use('/api/carts', cartsRouter);
+
+// Vista de carrito
+import { isAuthenticated } from './middlewares/jwt.middleware.js';
+app.get('/cart', isAuthenticated, (req, res) => {
+    res.render('cart', {
+        title: 'Carrito',
+        user: req.user
+    });
+});
+
 
 // Manejo de errores 404
 app.use((req, res) => {
