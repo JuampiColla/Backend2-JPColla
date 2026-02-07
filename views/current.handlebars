@@ -1,0 +1,128 @@
+<div class="container">
+    <div class="current-header">
+        <div class="user-profile">
+            <div class="avatar-large">
+                {{substring user.first_name 0 1}}{{substring user.last_name 0 1}}
+            </div>
+            <div class="user-details">
+                <h1>{{user.first_name}} {{user.last_name}}</h1>
+                <p class="user-subtitle">
+                    <span class="role-badge {{#if isAdmin}}admin{{else}}user{{/if}}">
+                        {{#if isAdmin}}👑 Administrador{{else}}👤 Usuario{{/if}}
+                    </span>
+                </p>
+            </div>
+        </div>
+        <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
+    </div>
+
+    <div class="current-content">
+        <div class="info-section">
+            <h2>📋 Información del Perfil</h2>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{user.email}}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Nombre:</span>
+                    <span class="info-value">{{user.first_name}}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Apellido:</span>
+                    <span class="info-value">{{user.last_name}}</span>
+                </div>
+
+                <div class="info-item">
+                    <span class="info-label">Rol:</span>
+                    <span class="info-value">{{user.role}}</span>
+                </div>
+
+                {{#if user.id}}
+                <div class="info-item">
+                    <span class="info-label">ID:</span>
+                    <span class="info-value id-value">{{user.id}}</span>
+                </div>
+                {{/if}}
+            </div>
+        </div>
+
+        <div class="security-section">
+            <h2>🔐 Información de Seguridad</h2>
+            <div class="security-info">
+                <div class="security-item">
+                    <span class="security-icon">🔑</span>
+                    <div>
+                        <strong>Autenticación JWT</strong>
+                        <p>Tu sesión está protegida con un token JSON Web Token</p>
+                    </div>
+                </div>
+                
+                <div class="security-item">
+                    <span class="security-icon">🍪</span>
+                    <div>
+                        <strong>Cookie Firmada</strong>
+                        <p>Cookie HttpOnly con firma criptográfica</p>
+                    </div>
+                </div>
+                
+                <div class="security-item">
+                    <span class="security-icon">🛡️</span>
+                    <div>
+                        <strong>Contraseña Segura</strong>
+                        <p>Hasheada con bcrypt (10 rondas)</p>
+                    </div>
+                </div>
+
+                <div class="security-item">
+                    <span class="security-icon">🗄️</span>
+                    <div>
+                        <strong>MongoDB Atlas</strong>
+                        <p>Datos almacenados en la nube de forma segura</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{#if isAdmin}}
+        <div class="admin-section">
+            <h2>⚙️ Panel de Administrador</h2>
+            <div class="admin-actions-grid">
+                <a href="/products" class="admin-action-card">
+                    <span class="action-icon">📦</span>
+                    <h3>Gestionar Productos</h3>
+                    <p>Ver y administrar el catálogo</p>
+                </a>
+                
+                <div class="admin-action-card" onclick="alert('Funcionalidad en desarrollo')">
+                    <span class="action-icon">👥</span>
+                    <h3>Gestionar Usuarios</h3>
+                    <p>Ver todos los usuarios del sistema</p>
+                </div>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+</div>
+
+<script>
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/api/users/logout', {
+                method: 'POST'
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                window.location.href = '/users/login';
+            }
+        } catch (error) {
+            console.error('Error al cerrar sesión:', error);
+            alert('Error al cerrar sesión');
+        }
+    });
+</script>

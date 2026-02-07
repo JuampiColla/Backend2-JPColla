@@ -1,0 +1,77 @@
+<div class="container">
+    <div class="login-box">
+        <h1>🔐 Iniciar Sesión</h1>
+        
+        {{#if errorMessage}}
+        <div class="message error">
+            ✗ {{errorMessage}}
+        </div>
+        {{/if}}
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required placeholder="tu@email.com" autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="btn-primary">Ingresar</button>
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div class="link-box">
+            <p>¿No tienes cuenta? <a href="/users/register">Regístrate aquí</a></p>
+        </div>
+
+        <div class="security-notice">
+            <p>🔒 <strong>Sistema de autenticación JWT:</strong></p>
+            <ul>
+                <li>✓ Token JWT firmado y seguro</li>
+                <li>✓ Cookie HttpOnly protegida</li>
+                <li>✓ Contraseñas hasheadas con bcrypt</li>
+                <li>✓ Conexión con MongoDB Atlas</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const messageDiv = document.getElementById('message');
+
+        try {
+            const response = await fetch('/api/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                messageDiv.className = 'message success';
+                messageDiv.textContent = '✓ ' + data.message;
+                setTimeout(() => {
+                    window.location.href = data.redirect || '/products';
+                }, 1000);
+            } else {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = '✗ ' + data.message;
+            }
+        } catch (error) {
+            messageDiv.className = 'message error';
+            messageDiv.textContent = '✗ Error al iniciar sesión';
+        }
+    });
+</script>

@@ -1,0 +1,487 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Login y Registro */
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    max-width: 450px;
+    margin: 50px auto;
+}
+
+.login-box h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #555;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.password-hint {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-secondary:hover {
+    background: #ee5a52;
+}
+
+.btn-info {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-info:hover {
+    background: #2980b9;
+}
+
+.link-box {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.link-box a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.link-box a:hover {
+    text-decoration: underline;
+}
+
+.message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: 500;
+    display: none;
+}
+
+.message.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.message.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.security-notice {
+    margin-top: 20px;
+    padding: 15px;
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    border-radius: 5px;
+}
+
+.security-notice p {
+    margin-bottom: 10px;
+    color: #2e7d32;
+    font-size: 14px;
+}
+
+.security-notice ul {
+    list-style: none;
+    padding: 0;
+}
+
+.security-notice li {
+    color: #388e3c;
+    font-size: 13px;
+    margin: 5px 0;
+}
+
+/* Vista Current - Perfil de Usuario */
+.current-header {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.user-details h1 {
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.user-subtitle {
+    color: #666;
+    font-size: 14px;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.role-badge.admin {
+    background: #ffd700;
+    color: #333;
+}
+
+.role-badge.user {
+    background: #667eea;
+    color: white;
+}
+
+.current-content {
+    display: grid;
+    gap: 30px;
+}
+
+.info-section,
+.security-section,
+.admin-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.info-section h2,
+.security-section h2,
+.admin-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 20px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.info-label {
+    font-weight: 600;
+    color: #667eea;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.info-value {
+    color: #333;
+    font-size: 16px;
+}
+
+.id-value {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #666;
+}
+
+.security-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.security-item {
+    display: flex;
+    gap: 15px;
+    align-items: start;
+}
+
+.security-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+}
+
+.security-item strong {
+    display: block;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.security-item p {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.admin-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.admin-action-card {
+    padding: 25px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.admin-action-card:hover {
+    border-color: #667eea;
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+}
+
+.action-icon {
+    font-size: 48px;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.admin-action-card h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.admin-action-card p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Vista de Productos (mantener compatibilidad) */
+.header {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.welcome-message {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-avatar {
+    flex-shrink: 0;
+}
+
+.avatar-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #667eea;
+}
+
+.avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.welcome-message h1 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.user-info {
+    color: #666;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.products-section {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.products-section h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.product-card {
+    border: 2px solid #eee;
+    border-radius: 8px;
+    padding: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .current-header,
+    .header {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .user-profile,
+    .welcome-message {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .user-info {
+        justify-content: center;
+    }
+
+    .info-grid,
+    .security-info,
+    .admin-actions-grid,
+    .products-grid {
+        grid-template-columns: 1fr;
+    }
+}
