@@ -8,7 +8,8 @@ import dotenv from 'dotenv';
 import passport from 'passport';
 import { initializePassport } from './config/passport.config.js';
 import { connectDB } from './config/database.config.js';
-import { loadUser } from './middlewares/jwt.middleware.js';
+import { loadUser, isAuthenticated } from './middlewares/jwt.middleware.js';
+import config from './src/config/config.js';
 
 // Importar rutas
 import authRouter from './routes/auth.routes.js';
@@ -26,7 +27,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
 // Conectar a MongoDB
 connectDB();
@@ -46,22 +46,22 @@ const hbs = handlebars.create({
 });
 
 app.engine('handlebars', hbs.engine);
-app.set('views', __dirname + '/views');
+app.set('views', config.paths.views);
 app.set('view engine', 'handlebars');
 
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname + '/public'));
-app.use(cookieParser(process.env.SESSION_SECRET || 'coderSecret2024'));
+app.use(express.static(config.paths.public));
+app.use(cookieParser(config.session.secret));
 
 // Configuración de sesiones (para compatibilidad con Passport)
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'coderSecret2024',
+    secret: config.session.secret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        maxAge: 1000 * 60 * 60 * 24 // 24 horas
+        maxAge: config.session.maxAge
     }
 }));
 
@@ -101,14 +101,12 @@ app.use('/api/products', productsRouter);
 app.use('/api/carts', cartsRouter);
 
 // Vista de carrito
-import { isAuthenticated } from './middlewares/jwt.middleware.js';
 app.get('/cart', isAuthenticated, (req, res) => {
     res.render('cart', {
         title: 'Carrito',
         user: req.user
     });
 });
-
 
 // Manejo de errores 404
 app.use((req, res) => {
@@ -118,10 +116,11 @@ app.use((req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(config.port, () => {
     console.log('='.repeat(50));
-    console.log(`🚀 Servidor escuchando en el puerto ${PORT}`);
-    console.log(`🌐 Accede en: http://localhost:${PORT}`);
-    console.log(`📝 Login: http://localhost:${PORT}/users/login`);
+    console.log(`🚀 Servidor escuchando en el puerto ${config.port}`);
+    console.log(`🌐 Accede en: http://localhost:${config.port}`);
+    console.log(`📝 Login: http://localhost:${config.port}/users/login`);
+    console.log(`✅ Environment: ${config.environment}`);
     console.log('='.repeat(50));
 });

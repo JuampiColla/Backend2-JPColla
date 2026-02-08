@@ -1,10 +1,5 @@
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'jwt_secret_key_2024';
-const JWT_COOKIE_NAME = process.env.JWT_COOKIE_NAME || 'currentUser';
+import config from '../src/config/config.js';
 
 // Generar token JWT
 export const generateToken = (user) => {
@@ -17,13 +12,13 @@ export const generateToken = (user) => {
         cart: user.cart // Incluir ID del carrito
     };
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+    return jwt.sign(payload, config.jwt.secret, { expiresIn: config.jwt.expiresIn });
 };
 
 // Verificar token JWT
 export const verifyToken = (token) => {
     try {
-        return jwt.verify(token, JWT_SECRET);
+        return jwt.verify(token, config.jwt.secret);
     } catch (error) {
         return null;
     }
@@ -31,17 +26,17 @@ export const verifyToken = (token) => {
 
 // Configurar cookie con token
 export const setTokenCookie = (res, token) => {
-    res.cookie(JWT_COOKIE_NAME, token, {
+    res.cookie(config.jwt.cookieName, token, {
         httpOnly: true,
         signed: true,
-        maxAge: 24 * 60 * 60 * 1000, // 24 horas
+        maxAge: config.session.maxAge,
         sameSite: 'strict'
     });
 };
 
 // Limpiar cookie
 export const clearTokenCookie = (res) => {
-    res.clearCookie(JWT_COOKIE_NAME);
+    res.clearCookie(config.jwt.cookieName);
 };
 
-export { JWT_COOKIE_NAME };
+export const JWT_COOKIE_NAME = config.jwt.cookieName;

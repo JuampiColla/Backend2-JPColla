@@ -1,13 +1,14 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import config from '../src/config/config.js';
 
 export const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(config.database.url, {
+            dbName: config.database.name
+        });
         console.log('✅ MongoDB Atlas conectado correctamente');
         console.log(`📦 Base de datos: ${mongoose.connection.name}`);
+        console.log(`🌐 Ambiente: ${config.environment}`);
     } catch (error) {
         console.error('❌ Error al conectar a MongoDB:', error.message);
         process.exit(1);
