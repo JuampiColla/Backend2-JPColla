@@ -1,6 +1,8 @@
 import authService from '../services/authService.js';
 import userDAO from '../daos/userDAO.js';
+import userRepository from '../repositories/userRepository.js';
 import { generateToken, setTokenCookie, clearTokenCookie } from '../../utils/jwt.utils.js';
+import { UserProfileDTO } from '../dtos/userDTO.js';
 
 class UserController {
   /**
@@ -11,7 +13,15 @@ class UserController {
     try {
       const { first_name, last_name, email, age, password } = req.body;
 
-      const newUser = await authService.register(
+      // Validar datos requeridos
+      if (!first_name || !last_name || !email || !password) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Todos los campos son requeridos'
+        });
+      }
+
+      const result = await authService.register(
         first_name,
         last_name,
         email,
@@ -20,13 +30,14 @@ class UserController {
       );
 
       // Generar token y establecer cookie
-      const token = authService.generateToken(newUser);
+      const token = generateToken(result.user);
       setTokenCookie(res, token);
 
       return res.status(201).json({
         status: 'success',
         message: 'Usuario registrado correctamente',
-        user: newUser.toJSON(),
+        user: result.user,
+        token,
         redirect: '/products'
       });
     } catch (error) {
@@ -46,16 +57,24 @@ class UserController {
     try {
       const { email, password } = req.body;
 
-      const user = await authService.login(email, password);
+      if (!email || !password) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Email y contraseña son requeridos'
+        });
+      }
+
+      const result = await authService.login(email, password);
 
       // Generar token y establecer cookie
-      const token = authService.generateToken(user);
+      const token = generateToken(result.user);
       setTokenCookie(res, token);
 
       return res.json({
         status: 'success',
         message: 'Login exitoso',
-        user: user.toJSON(),
+        user: result.user,
+        token,
         redirect: '/products'
       });
     } catch (error) {
@@ -88,14 +107,34 @@ class UserController {
   }
 
   /**
-   * Obtener usuario actual
+   * Obtener usuario actual (sin información sensible)
    * GET /api/users/current
    */
   async getCurrent(req, res) {
     try {
+      if (!req.user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Usuario no autenticado'
+        });
+      }
+
+      // Obtener usuario completo de la base de datos
+      const user = await userRepository.findById(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      // Usar DTO para no enviar información sensible
+      const userDTO = new UserProfileDTO(user);
+
       return res.json({
         status: 'success',
-        user: req.user
+        user: userDTO
       });
     } catch (error) {
       console.error('Error al obtener usuario actual:', error);

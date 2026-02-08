@@ -1,139 +1,248 @@
 import bcrypt from 'bcrypt';
-import userDAO from '../daos/userDAO.js';
-import { generateToken, setTokenCookie, clearTokenCookie } from '../../utils/jwt.utils.js';
+import crypto from 'crypto';
+import userRepository from '../repositories/userRepository.js';
+import emailService from './emailService.js';
 import config from '../config/config.js';
 
 class AuthService {
   /**
-   * Registrar un nuevo usuario
+   * Registrar nuevo usuario
    */
   async register(first_name, last_name, email, age, password) {
     try {
+      // Normalizar email (convertir a minúsculas)
+      const normalizedEmail = email.toLowerCase();
+      
       // Verificar si el usuario ya existe
-      const existingUser = await userDAO.exists(email);
+      const existingUser = await userRepository.findByEmail(normalizedEmail);
       if (existingUser) {
-        throw new Error('El usuario ya existe');
+        throw new Error('El email ya está registrado');
       }
 
-      // Validar campos obligatorios
-      if (!first_name || !last_name || !email || !password) {
-        throw new Error('Todos los campos son obligatorios');
+      // Validar contraseña
+      if (!password || password.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
       }
 
-      // Hashear la contraseña
+      // Hashear contraseña
       const hashedPassword = await bcrypt.hash(password, config.bcrypt.rounds);
 
-      // Determinar el rol
-      let role = 'user';
-      if (email === config.admin?.email) {
-        role = 'admin';
-      }
-
       // Crear usuario
-      const newUser = await userDAO.createUser({
+      const newUser = await userRepository.create({
         first_name,
         last_name,
-        email,
+        email: normalizedEmail,
         age,
         password: hashedPassword,
-        role,
-        provider: 'local'
+        lastPasswordChange: new Date()
       });
 
-      return newUser;
+      // Convertir a objeto plano sin contraseña
+      const userObject = newUser.toObject ? newUser.toObject() : newUser;
+      delete userObject.password;
+      delete userObject.resetToken;
+      delete userObject.resetTokenExpires;
+
+      return {
+        success: true,
+        message: 'Usuario registrado exitosamente',
+        user: userObject
+      };
     } catch (error) {
-      throw new Error(`Error en registro: ${error.message}`);
+      throw new Error(`Error al registrar: ${error.message}`);
     }
   }
 
   /**
-   * Login del usuario
+   * Login de usuario
    */
   async login(email, password) {
     try {
-      // Validar campos
-      if (!email || !password) {
-        throw new Error('Email y contraseña son obligatorios');
-      }
-
-      // Buscar usuario
-      const user = await userDAO.findByEmail(email);
+      // Normalizar email (convertir a minúsculas)
+      const normalizedEmail = email.toLowerCase();
+      
+      const user = await userRepository.findByEmail(normalizedEmail);
+      
       if (!user) {
         throw new Error('Credenciales inválidas');
       }
 
-      // Verificar contraseña
       const isValidPassword = await bcrypt.compare(password, user.password);
       if (!isValidPassword) {
         throw new Error('Credenciales inválidas');
       }
 
-      return user;
+      // Convertir a objeto plano sin contraseña
+      const userObject = user.toObject ? user.toObject() : user;
+      delete userObject.password;
+      delete userObject.resetToken;
+      delete userObject.resetTokenExpires;
+
+      return {
+        success: true,
+        message: 'Login exitoso',
+        user: userObject
+      };
     } catch (error) {
-      throw new Error(`Error en login: ${error.message}`);
+      throw new Error(`Error al login: ${error.message}`);
     }
   }
 
   /**
-   * Obtener usuario actual
+   * Solicitar recuperación de contraseña
    */
-  async getCurrentUser(userId) {
+  async requestPasswordReset(email) {
     try {
-      const user = await userDAO.findById(userId);
+      // Normalizar email (convertir a minúsculas)
+      const normalizedEmail = email.toLowerCase();
+      
+      const user = await userRepository.findByEmail(normalizedEmail);
+      if (!user) {
+        // Por seguridad, no revelamos si el email existe o no
+        return {
+          message: 'Si existe una cuenta con ese email, recibirás instrucciones'
+        };
+      }
+
+      // Generar token de recuperación
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + config.app.resetPasswordExpiresIn);
+
+      // Guardar token en BD
+      await userRepository.updateResetToken(user._id, resetToken, expiresAt);
+
+      // Enviar email
+      await emailService.sendPasswordResetEmail(
+        user.email,
+        user.first_name,
+        resetToken
+      );
+
+      return {
+        message: 'Si existe una cuenta con ese email, recibirás instrucciones para restablecer tu contraseña'
+      };
+    } catch (error) {
+      throw new Error(`Error al solicitar reseteo: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validar token de recuperación
+   */
+  async validateResetToken(token) {
+    try {
+      const user = await userRepository.findByResetToken(token);
+      if (!user) {
+        throw new Error('Token de recuperación inválido o expirado');
+      }
+      return user;
+    } catch (error) {
+      throw new Error(`Error al validar token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Restablecer contraseña
+   */
+  async resetPassword(token, newPassword, confirmPassword) {
+    try {
+      // Validar que las contraseñas coincidan
+      if (newPassword !== confirmPassword) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+
+      // Validar longitud
+      if (newPassword.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
+      }
+
+      // Obtener usuario por token
+      const user = await this.validateResetToken(token);
+
+      // Verificar que la contraseña nueva no sea igual a la anterior
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        throw new Error('La nueva contraseña no puede ser igual a la anterior');
+      }
+
+      // Hashear nueva contraseña
+      const hashedPassword = await bcrypt.hash(newPassword, config.bcrypt.rounds);
+
+      // Actualizar usuario
+      const updatedUser = await userRepository.update(user._id, {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpires: null,
+        lastPasswordChange: new Date()
+      });
+
+      // Enviar email de confirmación
+      await emailService.sendPasswordChangedEmail(
+        updatedUser.email,
+        updatedUser.first_name
+      );
+
+      return {
+        message: 'Contraseña restablecida exitosamente. Por favor, inicia sesión con tu nueva contraseña'
+      };
+    } catch (error) {
+      throw new Error(`Error al restablecer contraseña: ${error.message}`);
+    }
+  }
+
+  /**
+   * Cambiar contraseña (usuario autenticado)
+   */
+  async changePassword(userId, currentPassword, newPassword, confirmPassword) {
+    try {
+      // Validar que las contraseñas coincidan
+      if (newPassword !== confirmPassword) {
+        throw new Error('Las contraseñas nuevas no coinciden');
+      }
+
+      // Validar longitud
+      if (newPassword.length < 6) {
+        throw new Error('La contraseña debe tener al menos 6 caracteres');
+      }
+
+      // Obtener usuario
+      const user = await userRepository.findById(userId);
       if (!user) {
         throw new Error('Usuario no encontrado');
       }
-      return user;
-    } catch (error) {
-      throw new Error(`Error al obtener usuario actual: ${error.message}`);
-    }
-  }
 
-  /**
-   * Actualizar perfil de usuario
-   */
-  async updateProfile(userId, updateData, requestUserId, userRole) {
-    try {
-      // Verificar permisos
-      if (userId !== requestUserId && userRole !== 'admin') {
-        throw new Error('No tienes permisos para actualizar este usuario');
+      // Verificar contraseña actual
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        throw new Error('La contraseña actual es incorrecta');
       }
 
-      // Si se proporciona nueva contraseña, hashearla
-      if (updateData.password) {
-        updateData.password = await bcrypt.hash(updateData.password, config.bcrypt.rounds);
+      // Verificar que la nueva contraseña no sea igual a la anterior
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        throw new Error('La nueva contraseña no puede ser igual a la actual');
       }
 
-      const updatedUser = await userDAO.updateUser(userId, updateData);
-      if (!updatedUser) {
-        throw new Error('Usuario no encontrado');
-      }
+      // Hashear nueva contraseña
+      const hashedPassword = await bcrypt.hash(newPassword, config.bcrypt.rounds);
 
-      return updatedUser;
-    } catch (error) {
-      throw new Error(`Error al actualizar perfil: ${error.message}`);
-    }
-  }
+      // Actualizar usuario
+      const updatedUser = await userRepository.update(userId, {
+        password: hashedPassword,
+        lastPasswordChange: new Date()
+      });
 
-  /**
-   * Verificar contraseña
-   */
-  async verifyPassword(plainPassword, hashedPassword) {
-    try {
-      return await bcrypt.compare(plainPassword, hashedPassword);
-    } catch (error) {
-      throw new Error(`Error al verificar contraseña: ${error.message}`);
-    }
-  }
+      // Enviar email de confirmación
+      await emailService.sendPasswordChangedEmail(
+        updatedUser.email,
+        updatedUser.first_name
+      );
 
-  /**
-   * Generar token JWT
-   */
-  generateToken(user) {
-    try {
-      return generateToken(user);
+      return {
+        message: 'Contraseña cambiada exitosamente'
+      };
     } catch (error) {
-      throw new Error(`Error al generar token: ${error.message}`);
+      throw new Error(`Error al cambiar contraseña: ${error.message}`);
     }
   }
 }

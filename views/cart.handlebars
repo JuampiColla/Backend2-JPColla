@@ -17,6 +17,7 @@
         </div>
         <div class="header-actions">
             <a href="/products" class="btn-primary">⬅️ Seguir comprando</a>
+            <a href="/users/current" class="btn-primary">👤 Mi Perfil</a>
         </div>
     </div>
 
@@ -119,10 +120,62 @@
 </style>
 
 <script>
+    // Variable global para almacenar el ID del usuario
+    let currentUserId = null;
+
+    // Obtener usuario actual desde el servidor
+    async function getCurrentUser() {
+        try {
+            const res = await fetch('/api/users/current', {
+                credentials: 'include'
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.user && data.user._id) {
+                    currentUserId = data.user._id;
+                    console.log('✓ Usuario obtenido desde servidor:', currentUserId);
+                    return data.user;
+                }
+            }
+            
+            // Fallback: intentar decodificar JWT desde la cookie
+            console.log('Intentando decodificar JWT desde cookie...');
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'currentUser') {
+                    try {
+                        const parts = decodeURIComponent(value).split('.');
+                        if (parts.length === 3) {
+                            const decoded = JSON.parse(atob(parts[1]));
+                            if (decoded.id) {
+                                currentUserId = decoded.id;
+                                console.log('✓ Usuario obtenido desde JWT:', currentUserId);
+                                return decoded;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error decodificando JWT:', e);
+                    }
+                }
+            }
+            return null;
+        } catch (err) {
+            console.error('Error obteniendo usuario:', err);
+            return null;
+        }
+    }
+
     async function loadCart() {
         try {
-            console.log('Loading cart...');
-            const res = await fetch('/api/carts', {
+            if (!currentUserId) {
+                document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Cargando carrito...</p></div>';
+                return;
+            }
+
+            console.log('Loading cart for userId:', currentUserId);
+            const res = await fetch(`/api/carts/${currentUserId}`, {
                 credentials: 'include' // Incluir cookies en la solicitud
             });
             console.log('Cart response status:', res.status);
@@ -142,8 +195,8 @@
                 return;
             }
 
-            const { cart, total } = data.payload;
-            if (!cart || !cart.products.length) {
+            const cart = data.cart;
+            if (!cart || !cart.products || !cart.products.length) {
                 document.getElementById('cartContent').innerHTML = '<div class="cart-empty"><p>Tu carrito está vacío</p><a href="/products" class="btn-primary">Ir a Productos</a></div>';
                 return;
             }
@@ -154,37 +207,63 @@
             cart.products.forEach(item => {
                 const el = document.createElement('div');
                 el.className = 'cart-item';
-                const productPrice = item.product.price || 0;
+                const productPrice = item.price || 0;
                 const itemTotal = productPrice * item.quantity;
                 el.innerHTML = `
                     <div class="cart-item-info">
-                        <div><strong>${item.product.name || 'Producto'}</strong></div>
+                        <div><strong>${item.name || `Producto ${item.productId}`}</strong></div>
+                        <div style="color: #666; font-size: 13px;">ID: ${item.productId}</div>
                         <div>Precio: $${productPrice}</div>
                         <div><strong>Cantidad:</strong> ${item.quantity} unidades</div>
                         <div style="color: #667eea; font-weight: 600;">Subtotal: $${itemTotal}</div>
                     </div>
-                    <button class="btn-remove" data-id="${item.product.id || item.product}">🗑️ Eliminar</button>
+                    <button class="btn-remove" data-product-id="${item.productId}">🗑️ Eliminar</button>
                 `;
                 list.appendChild(el);
             });
 
             const totalEl = document.createElement('div');
             totalEl.className = 'cart-total';
-            totalEl.innerHTML = `<p>💰 Total: $${total}</p>`;
+            totalEl.innerHTML = `<p>💰 Total: $${cart.totalPrice || 0}</p>`;
+
+            // Agregar botón de compra
+            const purchaseBtn = document.createElement('button');
+            purchaseBtn.className = 'btn-primary';
+            purchaseBtn.textContent = '� Procesar Compra';
+            purchaseBtn.style.marginTop = '20px';
+            purchaseBtn.addEventListener('click', async () => {
+                if (confirm('¿Deseas procesar la compra de $' + cart.totalPrice + '?')) {
+                    try {
+                        const purchaseRes = await fetch(`/api/carts/${currentUserId}/purchase`, {
+                            method: 'POST',
+                            credentials: 'include'
+                        });
+                        const purchaseData = await purchaseRes.json();
+                        if (purchaseData.status === 'success') {
+                            alert('✅ Compra procesada exitosamente\n\nCódigo de ticket: ' + purchaseData.ticket.code + '\nMonto: $' + purchaseData.ticket.amount);
+                            location.href = '/products';
+                        } else {
+                            alert('❌ Error: ' + purchaseData.message);
+                        }
+                    } catch (err) {
+                        console.error('Error en compra:', err);
+                        alert('❌ Error al procesar compra');
+                    }
+                }
+            });
 
             document.getElementById('cartContent').innerHTML = '';
             document.getElementById('cartContent').appendChild(list);
             document.getElementById('cartContent').appendChild(totalEl);
+            document.getElementById('cartContent').appendChild(purchaseBtn);
 
             document.querySelectorAll('.btn-remove').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
-                    const productId = e.target.dataset.id;
+                    const productId = e.target.dataset.productId;
                     try {
-                        await fetch('/api/carts/remove', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include', // Incluir cookies
-                            body: JSON.stringify({ productId })
+                        await fetch(`/api/carts/${currentUserId}/products/${productId}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
                         });
                         loadCart();
                     } catch (err) {
@@ -200,5 +279,11 @@
         }
     }
 
-    loadCart();
+    // Cargar usuario actual y luego el carrito cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await getCurrentUser();
+        if (user) {
+            loadCart();
+        }
+    });
 </script>

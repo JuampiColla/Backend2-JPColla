@@ -7,8 +7,9 @@ class CartDAO {
   async createCart(userId) {
     try {
       const cart = await Cart.create({
-        user: userId,
-        products: []
+        userId,
+        products: [],
+        totalPrice: 0
       });
       return cart;
     } catch (error) {
@@ -21,7 +22,7 @@ class CartDAO {
    */
   async findByUserId(userId) {
     try {
-      const cart = await Cart.findOne({ user: userId });
+      const cart = await Cart.findOne({ userId });
       return cart;
     } catch (error) {
       throw new Error(`Error al buscar carrito: ${error.message}`);
@@ -43,7 +44,7 @@ class CartDAO {
   /**
    * Agregar producto al carrito
    */
-  async addProduct(cartId, productId, quantity = 1) {
+  async addProduct(cartId, productId, quantity = 1, price = 0) {
     try {
       const cart = await Cart.findById(cartId);
       if (!cart) {
@@ -52,7 +53,7 @@ class CartDAO {
 
       // Verificar si el producto ya está en el carrito
       const existingProduct = cart.products.find(
-        p => p.product === productId
+        p => p.productId === productId
       );
 
       if (existingProduct) {
@@ -61,8 +62,9 @@ class CartDAO {
       } else {
         // Agregar nuevo producto
         cart.products.push({
-          product: productId,
-          quantity
+          productId,
+          quantity,
+          price
         });
       }
 
@@ -85,7 +87,7 @@ class CartDAO {
 
       // Filtrar el producto
       cart.products = cart.products.filter(
-        p => p.product !== productId
+        p => p.productId !== productId
       );
 
       await cart.save();
@@ -105,14 +107,14 @@ class CartDAO {
         throw new Error('Carrito no encontrado');
       }
 
-      const product = cart.products.find(p => p.product === productId);
+      const product = cart.products.find(p => p.productId === productId);
       if (!product) {
         throw new Error('Producto no encontrado en el carrito');
       }
 
       if (quantity <= 0) {
         // Eliminar si la cantidad es 0 o negativa
-        cart.products = cart.products.filter(p => p.product !== productId);
+        cart.products = cart.products.filter(p => p.productId !== productId);
       } else {
         product.quantity = quantity;
       }
@@ -135,6 +137,7 @@ class CartDAO {
       }
 
       cart.products = [];
+      cart.totalPrice = 0;
       await cart.save();
       return cart;
     } catch (error) {
@@ -143,18 +146,17 @@ class CartDAO {
   }
 
   /**
-   * Obtener total del carrito
+   * Actualizar todo el carrito
    */
-  async getCartTotal(cartId) {
+  async updateCart(cartId, cartData) {
     try {
-      const cart = await Cart.findById(cartId);
+      const cart = await Cart.findByIdAndUpdate(cartId, cartData, { new: true });
       if (!cart) {
         throw new Error('Carrito no encontrado');
       }
-
-      return cart.calculateTotal();
+      return cart;
     } catch (error) {
-      throw new Error(`Error al calcular total: ${error.message}`);
+      throw new Error(`Error al actualizar carrito: ${error.message}`);
     }
   }
 }

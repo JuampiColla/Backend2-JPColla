@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { isAuthenticated, isNotAuthenticated } from '../middlewares/jwt.middleware.js';
+import { isAdmin } from '../middlewares/authorization.middleware.js';
 
 const router = Router();
 
@@ -17,22 +18,38 @@ router.get('/register', isNotAuthenticated, (req, res) => {
     });
 });
 
+// Vista de recuperar contraseña
+router.get('/forgot-password', isNotAuthenticated, (req, res) => {
+    res.render('forgot-password', {
+        title: 'Recuperar Contraseña'
+    });
+});
+
+// Vista de restablecer contraseña
+router.get('/reset-password', isNotAuthenticated, (req, res) => {
+    const token = req.query.token;
+    res.render('reset-password', {
+        title: 'Restablecer Contraseña',
+        token
+    });
+});
+
 // Vista de productos (requiere autenticación JWT)
 router.get('/', isAuthenticated, (req, res) => {
-    // Productos de ejemplo
-    const products = [
-        { id: 1, name: 'Producto 1', price: 100, stock: 10 },
-        { id: 2, name: 'Producto 2', price: 200, stock: 5 },
-        { id: 3, name: 'Producto 3', price: 150, stock: 8 },
-        { id: 4, name: 'Producto 4', price: 300, stock: 3 },
-        { id: 5, name: 'Producto 5', price: 250, stock: 7 }
-    ];
-
+    // Los productos se cargarán dinámicamente desde la API vía JavaScript
     res.render('products', {
         title: 'Productos',
         user: req.user,
-        products,
         isAdmin: req.user.role === 'admin'
+    });
+});
+
+// Vista de gestión de productos (solo admin)
+router.get('/manage', isAuthenticated, isAdmin, (req, res) => {
+    res.render('manage-products', {
+        title: 'Gestión de Productos',
+        user: req.user,
+        isAdmin: true
     });
 });
 

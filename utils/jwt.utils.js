@@ -27,10 +27,10 @@ export const verifyToken = (token) => {
 // Configurar cookie con token
 export const setTokenCookie = (res, token) => {
     res.cookie(config.jwt.cookieName, token, {
-        httpOnly: true,
-        signed: true,
+        httpOnly: false,  // Permitir que JavaScript acceda
+        secure: false,    // Cambiar a true en producción con HTTPS
         maxAge: config.session.maxAge,
-        sameSite: 'strict'
+        sameSite: 'lax'   // Permitir cookies en solicitudes cross-origin
     });
 };
 

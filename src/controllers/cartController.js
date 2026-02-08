@@ -3,16 +3,24 @@ import cartService from '../services/cartService.js';
 class CartController {
   /**
    * Obtener carrito del usuario
-   * GET /api/carts
    */
   async getCart(req, res) {
     try {
-      const userId = req.user.id;
-      const cart = await cartService.getCart(userId);
+      const { userId } = req.params;
+
+      // Verificar que el usuario accede su propio carrito
+      if (req.user.id !== userId && req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'No tienes permiso para acceder a este carrito'
+        });
+      }
+
+      const result = await cartService.getCart(userId);
 
       return res.json({
         status: 'success',
-        cart
+        cart: result.cart
       });
     } catch (error) {
       console.error('Error al obtener carrito:', error);
@@ -25,32 +33,36 @@ class CartController {
 
   /**
    * Agregar producto al carrito
-   * POST /api/carts/add
    */
   async addProduct(req, res) {
     try {
-      const { productId, quantity = 1 } = req.body;
-      const userId = req.user.id;
+      const { userId } = req.params;
+      const { productId, quantity, price, name } = req.body;
 
-      // Validar datos
-      if (!productId) {
-        return res.status(400).json({
+      console.log(`[CARRITO] Agregando producto: userId=${userId}, user.id=${req.user.id}, productId=${productId}, quantity=${quantity}`);
+
+      // Verificar que el usuario agrega a su propio carrito
+      // Convertir ambos a strings para comparar correctamente
+      if (req.user.id.toString() !== userId.toString()) {
+        return res.status(403).json({
           status: 'error',
-          message: 'productId es requerido'
+          message: 'No puedes agregar productos al carrito de otro usuario'
         });
       }
 
-      const { cart, total } = await cartService.addProductToCart(
-        userId,
-        productId,
-        quantity
-      );
+      if (!productId || !quantity || quantity <= 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Producto ID y cantidad válida son requeridos'
+        });
+      }
 
-      return res.status(200).json({
+      const result = await cartService.addProductToCart(userId, productId, quantity, price, name);
+
+      return res.json({
         status: 'success',
-        message: 'Producto agregado al carrito',
-        cart,
-        total
+        message: result.message,
+        cart: result.cart
       });
     } catch (error) {
       console.error('Error al agregar producto:', error);
@@ -62,71 +74,65 @@ class CartController {
   }
 
   /**
-   * Eliminar producto del carrito
-   * POST /api/carts/remove
+   * Remover producto del carrito
    */
   async removeProduct(req, res) {
     try {
-      const { productId } = req.body;
-      const userId = req.user.id;
+      const { userId, productId } = req.params;
 
-      // Validar datos
-      if (!productId) {
-        return res.status(400).json({
+      // Verificar que el usuario remueve de su propio carrito
+      if (req.user.id !== userId) {
+        return res.status(403).json({
           status: 'error',
-          message: 'productId es requerido'
+          message: 'No puedes remover productos del carrito de otro usuario'
         });
       }
 
-      const { cart, total } = await cartService.removeProductFromCart(
-        userId,
-        productId
-      );
+      const result = await cartService.removeProductFromCart(userId, productId);
 
       return res.json({
         status: 'success',
-        message: 'Producto eliminado del carrito',
-        cart,
-        total
+        message: result.message,
+        cart: result.cart
       });
     } catch (error) {
-      console.error('Error al eliminar producto:', error);
+      console.error('Error al remover producto:', error);
       return res.status(400).json({
         status: 'error',
-        message: error.message || 'Error al eliminar producto'
+        message: error.message || 'Error al remover producto'
       });
     }
   }
 
   /**
    * Actualizar cantidad de producto
-   * PUT /api/carts/:productId
    */
   async updateQuantity(req, res) {
     try {
-      const { productId } = req.params;
+      const { userId, productId } = req.params;
       const { quantity } = req.body;
-      const userId = req.user.id;
 
-      // Validar datos
-      if (!productId || quantity === undefined) {
-        return res.status(400).json({
+      // Verificar que el usuario actualiza su propio carrito
+      if (req.user.id !== userId) {
+        return res.status(403).json({
           status: 'error',
-          message: 'productId y quantity son requeridos'
+          message: 'No puedes actualizar el carrito de otro usuario'
         });
       }
 
-      const { cart, total } = await cartService.updateProductQuantity(
-        userId,
-        productId,
-        quantity
-      );
+      if (!quantity || quantity < 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Cantidad válida es requerida'
+        });
+      }
+
+      const result = await cartService.updateProductQuantity(userId, productId, quantity);
 
       return res.json({
         status: 'success',
-        message: 'Cantidad actualizada',
-        cart,
-        total
+        message: result.message,
+        cart: result.cart
       });
     } catch (error) {
       console.error('Error al actualizar cantidad:', error);
@@ -139,42 +145,31 @@ class CartController {
 
   /**
    * Vaciar carrito
-   * DELETE /api/carts
    */
   async clearCart(req, res) {
     try {
-      const userId = req.user.id;
-      await cartService.clearCart(userId);
+      const { userId } = req.params;
+
+      // Verificar que el usuario vacía su propio carrito
+      if (req.user.id !== userId) {
+        return res.status(403).json({
+          status: 'error',
+          message: 'No puedes vaciar el carrito de otro usuario'
+        });
+      }
+
+      const result = await cartService.clearCart(userId);
 
       return res.json({
         status: 'success',
-        message: 'Carrito vaciado'
+        message: result.message,
+        cart: result.cart
       });
     } catch (error) {
       console.error('Error al vaciar carrito:', error);
       return res.status(500).json({
         status: 'error',
         message: error.message || 'Error al vaciar carrito'
-      });
-    }
-  }
-
-  /**
-   * Obtener productos disponibles
-   * GET /api/carts/products
-   */
-  async getAvailableProducts(req, res) {
-    try {
-      const products = cartService.getAvailableProducts();
-      return res.json({
-        status: 'success',
-        products
-      });
-    } catch (error) {
-      console.error('Error al obtener productos:', error);
-      return res.status(500).json({
-        status: 'error',
-        message: error.message || 'Error al obtener productos'
       });
     }
   }

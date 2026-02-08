@@ -49,6 +49,19 @@ const userSchema = new mongoose.Schema({
     },
     avatar: {
         type: String
+    },
+    // AGREGAR ESTOS CAMPOS PARA RECUPERACIÓN DE CONTRASEÑA
+    resetToken: {
+        type: String,
+        default: null
+    },
+    resetTokenExpires: {
+        type: Date,
+        default: null
+    },
+    lastPasswordChange: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true

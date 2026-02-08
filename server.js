@@ -19,6 +19,7 @@ import usersApiRouter from './routes/api/users.routes.js';
 import usersViewsRouter from './routes/users.routes.js';
 import sessionsRouter from './routes/api/sessions.routes.js';
 import cartsRouter from './routes/api/carts.routes.js';
+import passwordRoutes from './routes/api/password.routes.js';
 
 // Cargar variables de entorno
 dotenv.config();
@@ -99,6 +100,7 @@ app.use('/api/products', productsRouter);
 
 // Rutas de carrito
 app.use('/api/carts', cartsRouter);
+app.use('/api/password', passwordRoutes);  // ← AGREGAR ESTA LÍNEA
 
 // Vista de carrito
 app.get('/cart', isAuthenticated, (req, res) => {

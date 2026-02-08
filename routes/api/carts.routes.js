@@ -1,25 +1,51 @@
 import { Router } from 'express';
-import cartController from '../../src/controllers/cartController.js';
 import { authenticateJWT } from '../../middlewares/jwt.middleware.js';
+import { isUser, canMakePurchase } from '../../middlewares/authorization.middleware.js';
+import cartController from '../../src/controllers/cartController.js';
+import purchaseController from '../../src/controllers/purchaseController.js';
 
 const router = Router();
 
-// Obtener carrito del usuario autenticado
-router.get('/', authenticateJWT, (req, res) => cartController.getCart(req, res));
+/**
+ * GET /api/carts/:userId
+ * Obtener carrito del usuario (solo el usuario o admin)
+ */
+router.get('/:userId', authenticateJWT, cartController.getCart);
 
-// Agregar producto al carrito (body: { productId, quantity })
-router.post('/add', authenticateJWT, (req, res) => cartController.addProduct(req, res));
+/**
+ * POST /api/carts/:userId/products
+ * Agregar producto al carrito (solo usuarios)
+ */
+router.post('/:userId/products', authenticateJWT, isUser, cartController.addProduct);
 
-// Actualizar cantidad de producto
-router.put('/:productId', authenticateJWT, (req, res) => cartController.updateQuantity(req, res));
+/**
+ * DELETE /api/carts/:userId/products/:productId
+ * Remover producto del carrito (solo usuarios)
+ */
+router.delete('/:userId/products/:productId', authenticateJWT, isUser, cartController.removeProduct);
 
-// Eliminar producto del carrito (body: { productId })
-router.post('/remove', authenticateJWT, (req, res) => cartController.removeProduct(req, res));
+/**
+ * PUT /api/carts/:userId/products/:productId
+ * Actualizar cantidad de producto (solo usuarios)
+ */
+router.put('/:userId/products/:productId', authenticateJWT, isUser, cartController.updateQuantity);
 
-// Vaciar carrito
-router.delete('/', authenticateJWT, (req, res) => cartController.clearCart(req, res));
+/**
+ * DELETE /api/carts/:userId
+ * Vaciar carrito (solo usuarios)
+ */
+router.delete('/:userId', authenticateJWT, isUser, cartController.clearCart);
 
-// Obtener productos disponibles
-router.get('/products', authenticateJWT, (req, res) => cartController.getAvailableProducts(req, res));
+/**
+ * POST /api/carts/:userId/purchase
+ * Procesar compra (solo usuarios)
+ */
+router.post('/:userId/purchase', authenticateJWT, canMakePurchase, purchaseController.purchase);
+
+/**
+ * GET /api/carts/:userId/tickets
+ * Obtener tickets del usuario
+ */
+router.get('/:userId/tickets', authenticateJWT, purchaseController.getUserTickets);
 
 export default router;

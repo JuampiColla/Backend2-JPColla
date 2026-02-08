@@ -59,6 +59,7 @@ router.post('/login', (req, res, next) => {
         return res.json({ 
             status: 'success', 
             message: 'Login exitoso',
+            token: token,
             payload: user.toJSON()
         });
     })(req, res, next);

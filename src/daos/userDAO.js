@@ -18,7 +18,8 @@ class UserDAO {
    */
   async findByEmail(email) {
     try {
-      const user = await User.findOne({ email });
+      // Búsqueda case-insensitive
+      const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
       return user;
     } catch (error) {
       throw new Error(`Error al buscar usuario por email: ${error.message}`);
@@ -58,7 +59,7 @@ class UserDAO {
         id,
         updateData,
         { new: true, runValidators: true }
-      ).select('-password');
+      );
       return user;
     } catch (error) {
       throw new Error(`Error al actualizar usuario: ${error.message}`);
@@ -78,14 +79,68 @@ class UserDAO {
   }
 
   /**
-   * Verificar si el usuario existe
+   * Verificar si el usuario existe (case-insensitive)
    */
   async exists(email) {
     try {
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
       return !!user;
     } catch (error) {
       throw new Error(`Error al verificar existencia del usuario: ${error.message}`);
+    }
+  }
+
+  /**
+   * Encontrar usuario por token de reseteo
+   */
+  async findByResetToken(token) {
+    try {
+      const user = await User.findOne({ 
+        resetToken: token,
+        resetTokenExpires: { $gt: new Date() }
+      });
+      return user;
+    } catch (error) {
+      throw new Error(`Error al buscar usuario por token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Actualizar token de reseteo
+   */
+  async updateResetToken(id, token, expiresAt) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        id,
+        { 
+          resetToken: token,
+          resetTokenExpires: expiresAt
+        },
+        { new: true }
+      );
+      return user;
+    } catch (error) {
+      throw new Error(`Error al actualizar token: ${error.message}`);
+    }
+  }
+
+  /**
+   * Limpiar token de reseteo
+   */
+  async clearResetToken(id) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        id,
+        { 
+          resetToken: null,
+          resetTokenExpires: null,
+          lastPasswordChange: new Date()
+        },
+        { new: true }
+      );
+      return user;
+    } catch (error) {
+      throw new Error(`Error al limpiar token: ${error.message}`);
     }
   }
 }

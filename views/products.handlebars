@@ -31,6 +31,7 @@
         </div>
         <div class="header-actions">
             <a href="/cart" class="btn-primary">🛒 Ver Carrito</a>
+            <a href="/users/current" class="btn-primary">👤 Mi Perfil</a>
             <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
         </div>
     </div>
@@ -41,51 +42,182 @@
         {{#if isAdmin}}
         <div class="admin-panel">
             <p class="admin-notice">⭐ Tienes permisos de administrador - Puedes gestionar productos</p>
+            <a href="/products/manage" class="btn-primary">📦 Gestionar Inventario</a>
         </div>
         {{/if}}
 
-        <div class="products-grid">
-            {{#each products}}
-            <div class="product-card">
-                <h3>{{this.name}}</h3>
-                <div class="product-info">
-                    <p class="price">${{this.price}}</p>
-                    <p class="stock">
-                        {{#if (gt this.stock 5)}}
-                        ✓ En stock: {{this.stock}} unidades
-                        {{else if (gt this.stock 0)}}
-                        ⚠️ Pocas unidades: {{this.stock}}
-                        {{else}}
-                        ✗ Sin stock
-                        {{/if}}
-                    </p>
-                </div>
-                {{#if ../isAdmin}}
-                <div class="admin-actions">
-                    <button class="btn-small btn-edit" data-id="{{this.id}}">✏️ Editar</button>
-                    <button class="btn-small btn-delete" data-id="{{this.id}}">🗑️ Eliminar</button>
-                </div>
-                {{else}}
-                <button class="btn-primary btn-add-cart" data-id="{{this.id}}" {{#unless (gt this.stock 0)}}disabled{{/unless}}>
-                    {{#if (gt this.stock 0)}}
-                    🛒 Agregar al Carrito
-                    {{else}}
-                    No Disponible
-                    {{/if}}
-                </button>
-                {{/if}}
-            </div>
-            {{/each}}
+        <div id="productsContainer" class="products-grid">
+            <p style="text-align: center; color: #666; padding: 40px;">Cargando productos...</p>
         </div>
     </div>
 </div>
 
 <script>
+    let currentUserId = null;
+    let isAdmin = {{isAdmin}};
+
+    // Obtener usuario actual
+    async function getCurrentUser() {
+        try {
+            console.log('[USUARIO] Obteniendo usuario actual...');
+            const res = await fetch('/api/users/current', {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            console.log('[USUARIO] Código de respuesta:', res.status);
+            
+            if (!res.ok) {
+                console.error('[USUARIO] Error:', res.statusText);
+                return null;
+            }
+
+            const data = await res.json();
+            console.log('[USUARIO] Datos recibidos:', data);
+
+            if (data && data.user && data.user._id) {
+                currentUserId = data.user._id;
+                console.log('[USUARIO] ID asignado:', currentUserId);
+                return data.user;
+            } else {
+                console.error('[USUARIO] Estructura incorrecta de respuesta');
+                return null;
+            }
+        } catch (err) {
+            console.error('[USUARIO] Error:', err);
+        }
+        return null;
+    }
+
+    // Cargar productos desde la API
+    async function loadProducts() {
+        try {
+            const response = await fetch('/api/products', {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al cargar productos');
+            }
+
+            const data = await response.json();
+            const products = data.products || [];
+
+            const container = document.getElementById('productsContainer');
+
+            if (products.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No hay productos disponibles</p>';
+                return;
+            }
+
+            // Renderizar productos
+            container.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <h3>${product.title}</h3>
+                    <div class="product-info">
+                        <p class="price">$${parseFloat(product.price).toFixed(2)}</p>
+                        <p class="stock">
+                            ${product.stock > 5 
+                                ? `✓ En stock: ${product.stock} unidades`
+                                : product.stock > 0
+                                ? `⚠️ Pocas unidades: ${product.stock}`
+                                : '✗ Sin stock'
+                            }
+                        </p>
+                        <p class="code" style="font-size: 12px; color: #999; margin-top: 8px;">Código: ${product.code || 'N/A'}</p>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        ${isAdmin 
+                            ? `<a href="/products/manage" class="btn-small btn-manage" style="text-decoration: none; flex: 1; min-width: 120px; display: flex; align-items: center; justify-content: center;">📊 Inventario</a>`
+                            : `<button class="btn-primary btn-add-cart" 
+                                data-id="${product._id}" 
+                                data-price="${product.price}" 
+                                data-name="${product.title}"
+                                ${product.stock > 0 ? '' : 'disabled'}
+                                style="flex: 1; min-width: 120px;">
+                                ${product.stock > 0 ? '🛒 Agregar al Carrito' : 'No Disponible'}
+                            </button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+
+            // Agregar event listeners para los botones
+            document.querySelectorAll('.btn-add-cart').forEach(btn => {
+                btn.addEventListener('click', handleAddToCart);
+            });
+        } catch (error) {
+            console.error('Error cargando productos:', error);
+            document.getElementById('productsContainer').innerHTML = 
+                '<p style="color: #e74c3c; text-align: center;">Error al cargar productos</p>';
+        }
+    }
+
+    // Manejar agregar al carrito
+    async function handleAddToCart(e) {
+        console.log('[CARRITO] Intentando agregar al carrito. currentUserId:', currentUserId);
+
+        if (!currentUserId) {
+            console.log('[CARRITO] Sin ID de usuario, verificando nuevamente...');
+            // Intentar obtener el usuario nuevamente si no se ha cargado
+            const user = await getCurrentUser();
+            if (!currentUserId && !user) {
+                console.log('[CARRITO] No se pudo obtener ID de usuario, redirigiendo');
+                alert('Por favor, inicia sesión');
+                window.location.href = '/users/login';
+                return;
+            }
+        }
+
+        const productId = e.target.dataset.id;
+        const price = parseFloat(e.target.dataset.price);
+        const name = e.target.dataset.name;
+
+        console.log('[CARRITO] Datos:', { productId, price, name, userId: currentUserId });
+
+        try {
+            const response = await fetch(`/api/carts/${currentUserId}/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ 
+                    productId, 
+                    quantity: 1, 
+                    price, 
+                    name 
+                })
+            });
+
+            const data = await response.json();
+            console.log('[CARRITO] Respuesta:', data);
+
+            if (data.status === 'success') {
+                alert('✓ Producto agregado al carrito');
+                // Recargar productos para actualizar stock
+                loadProducts();
+            } else {
+                alert('✗ Error: ' + (data.message || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error('[CARRITO] Error:', error);
+            alert('✗ Error al agregar al carrito: ' + error.message);
+        }
+    }
+
+    // Cargar usuario y productos cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', async () => {
+        await getCurrentUser();
+        loadProducts();
+    });
+
+    // Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
         try {
             const response = await fetch('/api/users/logout', {
                 method: 'POST',
-                credentials: 'include' // Incluir cookies
+                credentials: 'include'
             });
 
             const data = await response.json();
@@ -97,67 +229,4 @@
             console.error('Error al cerrar sesión:', error);
         }
     });
-
-    // Manejar click en "Agregar al Carrito"
-    document.querySelectorAll('.btn-add-cart').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const productId = e.target.dataset.id;
-            try {
-                const res = await fetch('/api/carts/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', // Incluir cookies
-                    body: JSON.stringify({ productId, quantity: 1 })
-                });
-
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    alert('✓ Producto agregado al carrito');
-                } else {
-                    alert('✗ Error: ' + data.message);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('✗ Error al agregar al carrito');
-            }
-        });
-    });
-
-    // Funcionalidad de administrador
-    {{#if isAdmin}}
-    // Eliminar producto
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = e.target.dataset.id;
-            if (confirm('¿Estás seguro de eliminar este producto?')) {
-                try {
-                    const response = await fetch(`/api/products/${id}`, {
-                        method: 'DELETE'
-                    });
-
-                    const data = await response.json();
-
-                    if (data.status === 'success') {
-                        alert('✓ Producto eliminado correctamente');
-                        location.reload();
-                    } else {
-                        alert('✗ Error: ' + data.message);
-                    }
-                } catch (error) {
-                    console.error('Error al eliminar:', error);
-                    alert('✗ Error al eliminar el producto');
-                }
-            }
-        });
-    });
-
-    // Editar producto
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.target.dataset.id;
-            alert('Funcionalidad de edición - Producto ID: ' + id);
-        });
-    });
-    {{/if}}
 </script>

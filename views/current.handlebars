@@ -14,6 +14,7 @@
             </div>
         </div>
         <button id="logoutBtn" class="btn-secondary">Cerrar Sesión</button>
+        <a href="/products" class="btn-primary">← Volver a Productos</a>
     </div>
 
     <div class="current-content">
@@ -40,50 +41,6 @@
                     <span class="info-label">Rol:</span>
                     <span class="info-value">{{user.role}}</span>
                 </div>
-
-                {{#if user.id}}
-                <div class="info-item">
-                    <span class="info-label">ID:</span>
-                    <span class="info-value id-value">{{user.id}}</span>
-                </div>
-                {{/if}}
-            </div>
-        </div>
-
-        <div class="security-section">
-            <h2>🔐 Información de Seguridad</h2>
-            <div class="security-info">
-                <div class="security-item">
-                    <span class="security-icon">🔑</span>
-                    <div>
-                        <strong>Autenticación JWT</strong>
-                        <p>Tu sesión está protegida con un token JSON Web Token</p>
-                    </div>
-                </div>
-                
-                <div class="security-item">
-                    <span class="security-icon">🍪</span>
-                    <div>
-                        <strong>Cookie Firmada</strong>
-                        <p>Cookie HttpOnly con firma criptográfica</p>
-                    </div>
-                </div>
-                
-                <div class="security-item">
-                    <span class="security-icon">🛡️</span>
-                    <div>
-                        <strong>Contraseña Segura</strong>
-                        <p>Hasheada con bcrypt (10 rondas)</p>
-                    </div>
-                </div>
-
-                <div class="security-item">
-                    <span class="security-icon">🗄️</span>
-                    <div>
-                        <strong>MongoDB Atlas</strong>
-                        <p>Datos almacenados en la nube de forma segura</p>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -91,10 +48,10 @@
         <div class="admin-section">
             <h2>⚙️ Panel de Administrador</h2>
             <div class="admin-actions-grid">
-                <a href="/products" class="admin-action-card">
+                <a href="/products/manage" class="admin-action-card">
                     <span class="action-icon">📦</span>
                     <h3>Gestionar Productos</h3>
-                    <p>Ver y administrar el catálogo</p>
+                    <p>Crear, editar y controlar inventario</p>
                 </a>
                 
                 <div class="admin-action-card" onclick="alert('Funcionalidad en desarrollo')">
@@ -105,10 +62,109 @@
             </div>
         </div>
         {{/if}}
+
+        <div class="purchases-section">
+            <h2>🛍️ Historial de Compras</h2>
+            <div id="purchasesContent">
+                <p style="text-align: center; color: #999;">Cargando historial...</p>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
+    let currentUserId = null;
+
+    // Obtener usuario actual y cargar historial
+    async function loadUserAndPurchases() {
+        try {
+            // Obtener usuario actual
+            const userRes = await fetch('/api/users/current', {
+                credentials: 'include'
+            });
+            
+            if (userRes.ok) {
+                const userData = await userRes.json();
+                console.log('User data:', userData);
+                if (userData.user) {
+                    currentUserId = userData.user._id || userData.user.id;
+                    console.log('Current user ID:', currentUserId);
+                    await loadPurchaseHistory();
+                }
+            } else {
+                console.error('Error fetching user:', userRes.status);
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: #e74c3c;">Error al cargar usuario</p>';
+            }
+        } catch (error) {
+            console.error('Error obteniendo usuario:', error);
+            document.getElementById('purchasesContent').innerHTML = '<p style="color: #e74c3c;">Error: ' + error.message + '</p>';
+        }
+    }
+
+    // Cargar historial de compras
+    async function loadPurchaseHistory() {
+        try {
+            if (!currentUserId) {
+                console.error('No user ID available');
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: #999;">No se pudo obtener el usuario</p>';
+                return;
+            }
+
+            console.log('Fetching tickets for user:', currentUserId);
+            const res = await fetch(`/api/carts/${currentUserId}/tickets`, {
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Response status:', res.status);
+            const data = await res.json();
+            console.log('Tickets response:', data);
+
+            if (!res.ok) {
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: #999;">No se pudo cargar el historial: ' + data.message + '</p>';
+                return;
+            }
+
+            if (!data.tickets || data.tickets.length === 0) {
+                document.getElementById('purchasesContent').innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No tienes compras registradas</p>';
+                return;
+            }
+
+            let html = '<div class="purchases-grid">';
+            data.tickets.forEach(ticket => {
+                const date = new Date(ticket.purchaseDate).toLocaleDateString('es-ES');
+                const productsHTML = ticket.products.map(p => 
+                    `<li>${p.name || 'Producto'} x${p.quantity} - $${p.price}</li>`
+                ).join('');
+                
+                html += `
+                    <div class="purchase-card">
+                        <div class="purchase-header">
+                            <h3>Compra #${ticket.code}</h3>
+                            <span class="purchase-status ${ticket.status}">${ticket.status}</span>
+                        </div>
+                        <div class="purchase-details">
+                            <p><strong>Fecha:</strong> ${date}</p>
+                            <p><strong>Monto:</strong> $${ticket.amount}</p>
+                            <p><strong>Productos:</strong></p>
+                            <ul style="margin-top: 5px;">
+                                ${productsHTML}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            document.getElementById('purchasesContent').innerHTML = html;
+        } catch (error) {
+            console.error('Error al cargar compras:', error);
+            document.getElementById('purchasesContent').innerHTML = '<p style="color: #e74c3c;">Error: ' + error.message + '</p>';
+        }
+    }
+
     document.getElementById('logoutBtn').addEventListener('click', async () => {
         try {
             const response = await fetch('/api/users/logout', {
@@ -125,4 +181,7 @@
             alert('Error al cerrar sesión');
         }
     });
+
+    // Cargar datos cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', loadUserAndPurchases);
 </script>
