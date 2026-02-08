@@ -132,8 +132,8 @@
             
             if (res.ok) {
                 const data = await res.json();
-                if (data.user && data.user._id) {
-                    currentUserId = data.user._id;
+                if (data.user && (data.user._id || data.user.id)) {
+                    currentUserId = data.user._id || data.user.id;
                     console.log('✓ Usuario obtenido desde servidor:', currentUserId);
                     return data.user;
                 }

@@ -77,8 +77,8 @@
             const data = await res.json();
             console.log('[USUARIO] Datos recibidos:', data);
 
-            if (data && data.user && data.user._id) {
-                currentUserId = data.user._id;
+            if (data && data.user && (data.user._id || data.user.id)) {
+                currentUserId = data.user._id || data.user.id;
                 console.log('[USUARIO] ID asignado:', currentUserId);
                 return data.user;
             } else {
@@ -115,6 +115,10 @@
             // Renderizar productos
             container.innerHTML = products.map(product => `
                 <div class="product-card">
+                    ${product.thumbnail
+                        ? `<div class="product-image"><img src="${product.thumbnail}" alt="${product.title}"></div>`
+                        : `<div class="product-image placeholder">Sin imagen</div>`
+                    }
                     <h3>${product.title}</h3>
                     <div class="product-info">
                         <p class="price">$${parseFloat(product.price).toFixed(2)}</p>

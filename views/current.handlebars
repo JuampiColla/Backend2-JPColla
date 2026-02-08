@@ -8,7 +8,7 @@
                 <h1>{{user.first_name}} {{user.last_name}}</h1>
                 <p class="user-subtitle">
                     <span class="role-badge {{#if isAdmin}}admin{{else}}user{{/if}}">
-                        {{#if isAdmin}}👑 Administrador{{else}}👤 Usuario{{/if}}
+                        {{#if isAdmin}}⬢ Administrador{{else}}⬡ Usuario{{/if}}
                     </span>
                 </p>
             </div>
@@ -19,7 +19,7 @@
 
     <div class="current-content">
         <div class="info-section">
-            <h2>📋 Información del Perfil</h2>
+            <h2>⎔ Informacion del Perfil</h2>
             
             <div class="info-grid">
                 <div class="info-item">
@@ -46,16 +46,16 @@
 
         {{#if isAdmin}}
         <div class="admin-section">
-            <h2>⚙️ Panel de Administrador</h2>
+            <h2>⬢ Panel de Administrador</h2>
             <div class="admin-actions-grid">
                 <a href="/products/manage" class="admin-action-card">
-                    <span class="action-icon">📦</span>
+                    <span class="action-icon">⬡</span>
                     <h3>Gestionar Productos</h3>
                     <p>Crear, editar y controlar inventario</p>
                 </a>
                 
                 <div class="admin-action-card" onclick="alert('Funcionalidad en desarrollo')">
-                    <span class="action-icon">👥</span>
+                    <span class="action-icon">⬢</span>
                     <h3>Gestionar Usuarios</h3>
                     <p>Ver todos los usuarios del sistema</p>
                 </div>
@@ -64,7 +64,7 @@
         {{/if}}
 
         <div class="purchases-section">
-            <h2>🛍️ Historial de Compras</h2>
+            <h2>⧉ Historial de Compras</h2>
             <div id="purchasesContent">
                 <p style="text-align: center; color: #999;">Cargando historial...</p>
             </div>
@@ -93,11 +93,11 @@
                 }
             } else {
                 console.error('Error fetching user:', userRes.status);
-                document.getElementById('purchasesContent').innerHTML = '<p style="color: #e74c3c;">Error al cargar usuario</p>';
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: var(--danger);">Error al cargar usuario</p>';
             }
         } catch (error) {
             console.error('Error obteniendo usuario:', error);
-            document.getElementById('purchasesContent').innerHTML = '<p style="color: #e74c3c;">Error: ' + error.message + '</p>';
+            document.getElementById('purchasesContent').innerHTML = '<p style="color: var(--danger);">Error: ' + error.message + '</p>';
         }
     }
 
@@ -106,7 +106,7 @@
         try {
             if (!currentUserId) {
                 console.error('No user ID available');
-                document.getElementById('purchasesContent').innerHTML = '<p style="color: #999;">No se pudo obtener el usuario</p>';
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: var(--muted);">No se pudo obtener el usuario</p>';
                 return;
             }
 
@@ -123,12 +123,12 @@
             console.log('Tickets response:', data);
 
             if (!res.ok) {
-                document.getElementById('purchasesContent').innerHTML = '<p style="color: #999;">No se pudo cargar el historial: ' + data.message + '</p>';
+                document.getElementById('purchasesContent').innerHTML = '<p style="color: var(--muted);">No se pudo cargar el historial: ' + data.message + '</p>';
                 return;
             }
 
             if (!data.tickets || data.tickets.length === 0) {
-                document.getElementById('purchasesContent').innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">No tienes compras registradas</p>';
+                document.getElementById('purchasesContent').innerHTML = '<p style="text-align: center; color: var(--muted); padding: 40px;">No tienes compras registradas</p>';
                 return;
             }
 
