@@ -35,22 +35,29 @@ const registerStrategy = new LocalStrategy(
             // Hashear contraseña con bcrypt usando configuración centralizada
             const hashedPassword = bcrypt.hashSync(password, config.bcrypt.rounds);
 
-            // Crear carrito para el usuario
-            const newCart = await Cart.create({ products: [] });
-
             // Determinar rol basado en email del admin configurado
             const role = email === config.admin?.email ? 'admin' : 'user';
 
-            // Crear usuario con campo cart
+            // Crear usuario primero
             const newUser = await User.create({
                 first_name,
                 last_name,
                 email,
                 age,
                 password: hashedPassword,
-                cart: newCart._id,
                 role
             });
+
+            // Crear carrito asociado al usuario
+            const newCart = await Cart.create({
+                userId: newUser._id.toString(),
+                products: [],
+                totalPrice: 0
+            });
+
+            // Vincular carrito al usuario
+            newUser.cart = newCart._id;
+            await newUser.save();
 
             return done(null, newUser);
         } catch (error) {

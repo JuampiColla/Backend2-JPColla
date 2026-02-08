@@ -1,6 +1,8 @@
+import bcrypt from 'bcrypt';
 import authService from '../services/authService.js';
 import userDAO from '../daos/userDAO.js';
 import userRepository from '../repositories/userRepository.js';
+import config from '../config/config.js';
 import { generateToken, setTokenCookie, clearTokenCookie } from '../../utils/jwt.utils.js';
 import { UserProfileDTO } from '../dtos/userDTO.js';
 
@@ -203,27 +205,52 @@ class UserController {
       const { id } = req.params;
       const { first_name, last_name, email, age, password } = req.body;
 
+      if (!req.user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Usuario no autenticado'
+        });
+      }
+
+      if (req.user.id !== id && req.user.role !== 'admin') {
+        return res.status(403).json({
+          status: 'error',
+          message: 'No tienes permiso para actualizar este usuario'
+        });
+      }
+
       const updateData = { first_name, last_name, email, age };
 
-      const updatedUser = await authService.updateProfile(
-        id,
-        updateData,
-        req.user.id,
-        req.user.role
-      );
-
       if (password) {
-        // Si se actualiza contraseña, hashearla
-        updateData.password = await authService.verifyPassword(
-          password,
-          updatedUser.password
-        );
+        if (password.length < 6) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'La contraseña debe tener al menos 6 caracteres'
+          });
+        }
+
+        updateData.password = await bcrypt.hash(password, config.bcrypt.rounds);
+        updateData.lastPasswordChange = new Date();
       }
+
+      const updatedUser = await userRepository.update(id, updateData);
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Usuario no encontrado'
+        });
+      }
+
+      const userObject = updatedUser.toObject ? updatedUser.toObject() : updatedUser;
+      delete userObject.password;
+      delete userObject.resetToken;
+      delete userObject.resetTokenExpires;
 
       return res.json({
         status: 'success',
         message: 'Usuario actualizado correctamente',
-        user: updatedUser
+        user: userObject
       });
     } catch (error) {
       console.error('Error al actualizar usuario:', error);

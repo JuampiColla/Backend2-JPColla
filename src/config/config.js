@@ -62,10 +62,6 @@ const config = {
   
   // Email
   email: {
-    // Gmail (deprecated)
-    user: process.env.EMAIL_USER || 'tu-email@gmail.com',
-    password: process.env.EMAIL_PASSWORD || 'tu-contraseña-aplicacion',
-    
     // Mailtrap (actual)
     smtpHost: process.env.SMTP_HOST || 'sandbox.smtp.mailtrap.io',
     smtpPort: parseInt(process.env.SMTP_PORT || '2525'),

@@ -79,18 +79,6 @@ class UserDAO {
   }
 
   /**
-   * Verificar si el usuario existe (case-insensitive)
-   */
-  async exists(email) {
-    try {
-      const user = await User.findOne({ email: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
-      return !!user;
-    } catch (error) {
-      throw new Error(`Error al verificar existencia del usuario: ${error.message}`);
-    }
-  }
-
-  /**
    * Encontrar usuario por token de reseteo
    */
   async findByResetToken(token) {
@@ -121,26 +109,6 @@ class UserDAO {
       return user;
     } catch (error) {
       throw new Error(`Error al actualizar token: ${error.message}`);
-    }
-  }
-
-  /**
-   * Limpiar token de reseteo
-   */
-  async clearResetToken(id) {
-    try {
-      const user = await User.findByIdAndUpdate(
-        id,
-        { 
-          resetToken: null,
-          resetTokenExpires: null,
-          lastPasswordChange: new Date()
-        },
-        { new: true }
-      );
-      return user;
-    } catch (error) {
-      throw new Error(`Error al limpiar token: ${error.message}`);
     }
   }
 }

@@ -18,22 +18,6 @@ router.get('/register', isNotAuthenticated, (req, res) => {
     });
 });
 
-// Vista de recuperar contraseña
-router.get('/forgot-password', isNotAuthenticated, (req, res) => {
-    res.render('forgot-password', {
-        title: 'Recuperar Contraseña'
-    });
-});
-
-// Vista de restablecer contraseña
-router.get('/reset-password', isNotAuthenticated, (req, res) => {
-    const token = req.query.token;
-    res.render('reset-password', {
-        title: 'Restablecer Contraseña',
-        token
-    });
-});
-
 // Vista de productos (requiere autenticación JWT)
 router.get('/', isAuthenticated, (req, res) => {
     // Los productos se cargarán dinámicamente desde la API vía JavaScript

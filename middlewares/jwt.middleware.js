@@ -71,24 +71,6 @@ export const isNotAuthenticated = (req, res, next) => {
     next();
 };
 
-// Middleware para verificar rol admin
-export const isAdmin = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ 
-            status: 'error', 
-            message: 'No autenticado' 
-        });
-    }
-
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ 
-            status: 'error', 
-            message: 'Acceso denegado - Se requieren permisos de administrador' 
-        });
-    }
-
-    next();
-};
 
 // Middleware para agregar user a res.locals si existe token
 export const loadUser = (req, res, next) => {
@@ -105,26 +87,3 @@ export const loadUser = (req, res, next) => {
     next();
 };
 
-// Middleware para verificar si es usuario
-export const isUser = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ 
-            status: 'error', 
-            message: 'No autenticado' 
-        });
-    }
-
-    next();
-};
-
-// Middleware para verificar si puede hacer compra
-export const canMakePurchase = (req, res, next) => {
-    if (!req.user) {
-        return res.status(401).json({ 
-            status: 'error', 
-            message: 'No autenticado' 
-        });
-    }
-
-    next();
-};

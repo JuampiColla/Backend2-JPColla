@@ -44,13 +44,6 @@ class UserRepository {
   }
 
   /**
-   * Verificar si usuario existe
-   */
-  async exists(email) {
-    return await userDAO.exists(email);
-  }
-
-  /**
    * Buscar usuario por token de recuperación
    */
   async findByResetToken(token) {
@@ -62,13 +55,6 @@ class UserRepository {
    */
   async updateResetToken(id, token, expiresAt) {
     return await userDAO.updateResetToken(id, token, expiresAt);
-  }
-
-  /**
-   * Limpiar token de recuperación
-   */
-  async clearResetToken(id) {
-    return await userDAO.clearResetToken(id);
   }
 }
 
